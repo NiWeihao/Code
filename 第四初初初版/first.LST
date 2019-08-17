@@ -1,0 +1,283 @@
+C51 COMPILER V9.51   FIRST                                                                 08/18/2019 00:43:48 PAGE 1   
+
+
+C51 COMPILER V9.51, COMPILATION OF MODULE FIRST
+OBJECT MODULE PLACED IN first.OBJ
+COMPILER INVOKED BY: I:\Keil\C51\BIN\C51.EXE first.c BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include <STC15F2K60S2.h>
+   2          sbit beep = P3^4;
+   3          //sbit  ADDR3 = P1^3;
+   4          //sbit  ENLED = P1^4;
+   5          //uchar duanxuan[]={0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f};     //显示0-9
+   6          unsigned char weixuan[]={0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07};       //数码管0-7
+   7          
+   8          sbit led_sel=P2^3;  
+   9          sbit key1 = P3^2;         //按键1引脚
+  10          bit flag; 
+  11          //控制蜂鸣器开关的标志位
+  12          void delay(unsigned int xms)
+  13          {
+  14   1        unsigned char i;
+  15   1        for(; xms>0; xms--)           
+  16   1          for(i=114; i>0; i--)
+  17   1          {
+  18   2            ;
+  19   2          }
+  20   1      }  
+  21          
+  22          
+  23          //数码管与LED灯切换引脚
+  24          //void delay_ms(unsigned int n)   
+  25          //{
+  26            //while(n){
+  27            //unsigned char i, j;
+  28            //i = 11;
+  29            //j = 190;
+  30            //do
+  31            //{
+  32              //while (--j);
+  33            //} while (--i);
+  34            //n--;
+  35          //}
+  36          //}
+  37          
+  38          void Init(){
+  39   1        P3M1 = 0x00;
+  40   1        P3M0 = 0x10;
+  41   1        
+  42   1        P0M1 = 0x00;
+  43   1        P0M0 = 0xff;
+  44   1      
+  45   1        P2M1 = 0x00;
+  46   1        P2M0 = 0x08;
+  47   1        
+  48   1        beep = 0;
+  49   1        flag = 0;
+  50   1        led_sel=0;  //先选择数码管亮
+  51   1        
+  52   1        //flag_1 = 0;
+  53   1        //flag_2 = 0;
+  54   1      }
+  55          
+C51 COMPILER V9.51   FIRST                                                                 08/18/2019 00:43:48 PAGE 2   
+
+  56          ///////////////////////////////////////////////////////////////////////////
+  57          unsigned char code LedChar[] = {  //数码管显示字符转换表
+  58              //0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8,
+  59              //0x80, 0x90, 0x88, 0x83, 0xC6, 0xA1, 0x86, 0x8E
+  60              0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f
+  61          };
+  62          unsigned char LedBuff[9] = {  //数码管+独立LED显示缓冲区
+  63              //0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+  64              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+  65          };
+  66          bit flag1s = 1;
+  67          unsigned char T0RH = 0;
+  68          unsigned char T0RL = 0;
+  69          
+  70          void ConfigTimer0(unsigned int ms);
+  71          void TrafficLight();
+  72          void main()
+  73          {
+  74   1          Init();
+  75   1          led_sel = 0;
+  76   1          EA = 1;      //开总中断
+  77   1          //ENLED = 0;   //使能数码管和LED
+  78   1          //ADDR3 = 1;
+  79   1          ConfigTimer0(1);  //配置T0定时1ms
+  80   1          
+  81   1          while (1)
+  82   1          {
+  83   2              if (flag1s)  //每秒执行一次交通灯刷新
+  84   2              {
+  85   3                  flag1s = 0;
+  86   3                  TrafficLight();
+  87   3              }
+  88   2          }
+  89   1      }
+  90          
+  91          void ConfigTimer0(unsigned int ms)
+  92          {
+  93   1          unsigned long tmp;  //临时变量
+  94   1          
+  95   1          tmp = 11059200 / 12;      //定时器计数频率
+  96   1          tmp = (tmp * ms) / 1000;  //计算所需的计数值
+  97   1          tmp = 65536 - tmp;        //计算定时器重载值
+  98   1          tmp = tmp + 18;           //补偿中断响应延时造成的误差
+  99   1          T0RH = (unsigned char)(tmp>>8);  //定时器重载值拆分为高低字节
+ 100   1          T0RL = (unsigned char)tmp;
+ 101   1          TMOD &= 0xF0;   //清零T0的控制位
+ 102   1          TMOD |= 0x01;   //配置T0为模式1
+ 103   1          TH0 = T0RH;     //加载T0重载值
+ 104   1          TL0 = T0RL;
+ 105   1          ET0 = 1;        //使能T0中断
+ 106   1          TR0 = 1;        //启动T0
+ 107   1      }
+ 108          void TrafficLight()
+ 109          {
+ 110   1        static unsigned char color = 2;
+ 111   1        static unsigned char timer = 0;
+ 112   1        
+ 113   1        
+ 114   1        
+ 115   1        if(timer == 0)
+ 116   1        { 
+ 117   2          if(key1==0)
+C51 COMPILER V9.51   FIRST                                                                 08/18/2019 00:43:48 PAGE 3   
+
+ 118   2          { 
+ 119   3            delay(10);             //延时消抖
+ 120   3            if(key1==0)
+ 121   3            {                   
+ 122   4              while(!key1);
+ 123   4              color = 2;            //蜂鸣器开关标志位翻转
+ 124   4              timer = 30;
+ 125   4              LedBuff[8] = 0x01;
+ 126   4            }
+ 127   3          }
+ 128   2          switch(color)
+ 129   2          {
+ 130   3            case 0:
+ 131   3            color = 1;
+ 132   3            timer = 10;
+ 133   3            //LedBuff[8] = 0x03;
+ 134   3            break;
+ 135   3      
+ 136   3            case 1:
+ 137   3            color = 2;
+ 138   3            timer = 30;
+ 139   3            LedBuff[8] = 0x01;
+ 140   3            break;
+ 141   3      
+ 142   3            case 2:
+ 143   3            color = 0;
+ 144   3            timer = 8;//绿灯
+ 145   3            LedBuff[8] = 0x07;
+ 146   3            break;
+ 147   3      
+ 148   3            default:
+ 149   3            break;
+ 150   3          }
+ 151   2        }
+ 152   1        else
+ 153   1        {
+ 154   2          timer--;
+ 155   2          
+ 156   2          if(key1==0)
+ 157   2          { 
+ 158   3            delay(10);             //延时消抖
+ 159   3            if(key1==0)
+ 160   3            {                   
+ 161   4              while(!key1);
+ 162   4              color = 2;            //蜂鸣器开关标志位翻转
+ 163   4              timer = 30;
+ 164   4              LedBuff[8] = 0x01;
+ 165   4            }
+ 166   3          }
+ 167   2          
+ 168   2          if (color == 2){
+ 169   3              flag=~flag;
+ 170   3          }else{
+ 171   3            flag=0;
+ 172   3          }
+ 173   2          
+ 174   2          if (color == 1){
+ 175   3            
+ 176   3              if (timer%2==0){
+ 177   4                  LedBuff[8] = 0x03;
+ 178   4              }else{
+ 179   4                  LedBuff[8] = 0x00;
+C51 COMPILER V9.51   FIRST                                                                 08/18/2019 00:43:48 PAGE 4   
+
+ 180   4              }
+ 181   3            
+ 182   3          }
+ 183   2          
+ 184   2        }
+ 185   1        //LedBuff[0] = LedChar[timer%10];
+ 186   1        //LedBuff[1] = LedChar[timer/10]; 
+ 187   1          LedBuff[0] = LedChar[timer/10];
+ 188   1          LedBuff[1] = LedChar[timer%10]; 
+ 189   1      }
+ 190          void LedScan()
+ 191          {
+ 192   1          static unsigned char i = 0;  //动态扫描索引
+ 193   1          led_sel = 0;
+ 194   1          P0 = 0xFF;             //关闭所有段选位，显示消隐
+ 195   1          
+ 196   1          
+ 197   1          P2 = (P2 & 0x00) | i;  //位选索引值赋值到P2口低3位
+ 198   1          
+ 199   1        
+ 200   1          P0 = LedBuff[i];       //缓冲区中索引位置的数据送到P0口
+ 201   1          if (i < 8)             //索引递增循环，遍历整个缓冲区
+ 202   1              i++;
+ 203   1          else
+ 204   1              i = 0;
+ 205   1      }
+ 206          
+ 207          void InterruptTimer0() interrupt 1
+ 208          {
+ 209   1          static unsigned int tmr1s = 0;  //1秒定时器
+ 210   1          //static unsigned int time1s = 0;
+ 211   1          //static unsigned int time1s_2 = 0;
+ 212   1        
+ 213   1          TH0 = T0RH;  //重新加载重载值
+ 214   1          TL0 = T0RL;
+ 215   1          LedScan();   //LED扫描显示
+ 216   1          tmr1s++;     //1秒定时的处理
+ 217   1          //time1s++;
+ 218   1        
+ 219   1          if (tmr1s >= 1000)
+ 220   1          {
+ 221   2              tmr1s = 0;
+ 222   2              flag1s = 1;  //设置秒定时标志
+ 223   2          }
+ 224   1          if(flag)
+ 225   1          {
+ 226   2              beep=~beep;          //产生方波使得蜂鸣器发声
+ 227   2          }
+ 228   1          else
+ 229   1          {
+ 230   2              beep=0;             //停止发声，并将beep端口置于低电平
+ 231   2          }
+ 232   1          
+ 233   1          //if(flag_1==1&&flag_2==0){
+ 234   1            //if(time1s<=1000){
+ 235   1                //LedBuff[8] = 0x00;
+ 236   1                //if(time1s==1000){
+ 237   1                  //flag_2 = 1;
+ 238   1                //}
+ 239   1            //}
+ 240   1            
+ 241   1            
+C51 COMPILER V9.51   FIRST                                                                 08/18/2019 00:43:48 PAGE 5   
+
+ 242   1          //}else if(flag_1==1&&flag_2==1){
+ 243   1            //if(time1s >1000){
+ 244   1                //LedBuff[8] = 0x03;
+ 245   1                //if(time1s==2000){
+ 246   1                    //flag_2 = 0;
+ 247   1                    //time1s=0;
+ 248   1                //}
+ 249   1            //}
+ 250   1          //}
+ 251   1          
+ 252   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    428    ----
+   CONSTANT SIZE    =     10    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     24       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

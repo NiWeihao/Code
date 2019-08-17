@@ -1,0 +1,4 @@
+"STARTUP.obj",
+"first.obj" 
+TO "First_edition" 
+RAMSIZE(256) 
